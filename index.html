@@ -6,34 +6,35 @@
 <title>PAULO SENSI</title>
 
 <style>
+
 body{
-font-family: Arial;
-background:#0b1a2b;
+font-family:Arial;
+background:#081423;
 margin:0;
-padding:0;
 color:white;
 }
 
 header{
 text-align:center;
 padding:20px;
-font-size:26px;
+font-size:28px;
+color:#ff2e2e;
 font-weight:bold;
-color:#ff2b2b;
+background:#050c18;
 }
 
 .search{
 width:90%;
-margin:auto;
+margin:20px auto;
 display:block;
 padding:12px;
 border-radius:10px;
 border:none;
-margin-bottom:20px;
+font-size:16px;
 }
 
 .card{
-background:#14263f;
+background:#13243b;
 margin:15px;
 padding:20px;
 border-radius:15px;
@@ -41,21 +42,22 @@ text-align:center;
 }
 
 button{
-background:#ff2b2b;
-color:white;
+background:#ff2e2e;
 border:none;
 padding:10px 20px;
 border-radius:8px;
+color:white;
+font-size:14px;
 cursor:pointer;
 }
 
 .planos{
-text-align:center;
 margin-top:40px;
+text-align:center;
 }
 
 .plano{
-background:#14263f;
+background:#13243b;
 margin:15px;
 padding:20px;
 border-radius:15px;
@@ -77,7 +79,7 @@ border-radius:15px;
 <p>Geral: 95</p>
 <p>Red Dot: 90</p>
 <p>DPI: 420</p>
-<button onclick="copiar('95 / 90 / DPI 420')">Copiar Sensibilidade</button>
+<button onclick="copiar('95 / 90 / 420')">Copiar Sensibilidade</button>
 </div>
 
 <div class="card">
@@ -85,15 +87,47 @@ border-radius:15px;
 <p>Geral: 92</p>
 <p>Red Dot: 88</p>
 <p>DPI: 400</p>
-<button onclick="copiar('92 / 88 / DPI 400')">Copiar Sensibilidade</button>
+<button onclick="copiar('92 / 88 / 400')">Copiar Sensibilidade</button>
+</div>
+
+<div class="card">
+<h3>Samsung A22</h3>
+<p>Geral: 94</p>
+<p>Red Dot: 90</p>
+<p>DPI: 410</p>
+<button onclick="copiar('94 / 90 / 410')">Copiar Sensibilidade</button>
+</div>
+
+<div class="card">
+<h3>Samsung A32</h3>
+<p>Geral: 93</p>
+<p>Red Dot: 89</p>
+<p>DPI: 420</p>
+<button onclick="copiar('93 / 89 / 420')">Copiar Sensibilidade</button>
+</div>
+
+<div class="card">
+<h3>Redmi Note 10</h3>
+<p>Geral: 96</p>
+<p>Red Dot: 91</p>
+<p>DPI: 430</p>
+<button onclick="copiar('96 / 91 / 430')">Copiar Sensibilidade</button>
 </div>
 
 <div class="card">
 <h3>Redmi Note 11</h3>
-<p>Geral: 94</p>
-<p>Red Dot: 89</p>
+<p>Geral: 95</p>
+<p>Red Dot: 90</p>
 <p>DPI: 420</p>
-<button onclick="copiar('94 / 89 / DPI 420')">Copiar Sensibilidade</button>
+<button onclick="copiar('95 / 90 / 420')">Copiar Sensibilidade</button>
+</div>
+
+<div class="card">
+<h3>Poco X3</h3>
+<p>Geral: 97</p>
+<p>Red Dot: 92</p>
+<p>DPI: 440</p>
+<button onclick="copiar('97 / 92 / 440')">Copiar Sensibilidade</button>
 </div>
 
 <div class="card">
@@ -101,7 +135,23 @@ border-radius:15px;
 <p>Geral: 93</p>
 <p>Red Dot: 90</p>
 <p>DPI: 410</p>
-<button onclick="copiar('93 / 90 / DPI 410')">Copiar Sensibilidade</button>
+<button onclick="copiar('93 / 90 / 410')">Copiar Sensibilidade</button>
+</div>
+
+<div class="card">
+<h3>iPhone 11</h3>
+<p>Geral: 98</p>
+<p>Red Dot: 93</p>
+<p>DPI: 450</p>
+<button onclick="copiar('98 / 93 / 450')">Copiar Sensibilidade</button>
+</div>
+
+<div class="card">
+<h3>iPhone 13</h3>
+<p>Geral: 99</p>
+<p>Red Dot: 94</p>
+<p>DPI: 460</p>
+<button onclick="copiar('99 / 94 / 460')">Copiar Sensibilidade</button>
 </div>
 
 </div>
@@ -130,8 +180,11 @@ border-radius:15px;
 <script>
 
 function copiar(texto){
+
 navigator.clipboard.writeText(texto)
+
 alert("Sensibilidade copiada!")
+
 }
 
 function buscar(){
@@ -141,11 +194,17 @@ let input=document.getElementById("busca").value.toLowerCase()
 let cards=document.querySelectorAll(".card")
 
 cards.forEach(card=>{
+
 if(card.innerText.toLowerCase().includes(input)){
+
 card.style.display="block"
+
 }else{
+
 card.style.display="none"
+
 }
+
 })
 
 }
