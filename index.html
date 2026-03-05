@@ -1,176 +1,221 @@
-<!doctype html>
-<html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PAULO SENSI</title>
-  <meta name="description" content="Sensibilidade Free Fire por celular. PAULO SENSI." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>PAULO SENSI</title>
+
+<link rel="stylesheet" href="style.css">
+
+<style>
+
+body{
+background:#0b0f1a;
+color:white;
+font-family:Arial, Helvetica, sans-serif;
+margin:0;
+}
+
+header{
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:15px;
+background:#050914;
+}
+
+.logo{
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.logo-box{
+width:40px;
+height:40px;
+background:red;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:bold;
+}
+
+h1{
+font-size:18px;
+margin:0;
+}
+
+.sub{
+font-size:12px;
+color:#aaa;
+}
+
+main{
+padding:20px;
+}
+
+.title{
+font-size:32px;
+font-weight:bold;
+}
+
+.red{
+color:#ff3b3b;
+}
+
+.search{
+margin-top:20px;
+}
+
+.search input{
+width:100%;
+padding:14px;
+border-radius:10px;
+border:none;
+background:#111827;
+color:white;
+font-size:14px;
+}
+
+.cards{
+margin-top:30px;
+display:grid;
+gap:20px;
+}
+
+.card{
+background:#111827;
+border-radius:14px;
+padding:20px;
+}
+
+.phone{
+font-size:20px;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+.info{
+color:#cbd5e1;
+margin:4px 0;
+}
+
+.btn{
+margin-top:15px;
+background:#ff3b3b;
+border:none;
+padding:12px;
+border-radius:10px;
+color:white;
+font-weight:bold;
+width:100%;
+cursor:pointer;
+}
+
+.btn:hover{
+background:#ff0000;
+}
+
+</style>
 </head>
 
 <body>
-  <div class="bg-noise"></div>
 
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo" id="appLogo" aria-label="Logo PAULO SENSI"></div>
-      <div class="brandText">
-        <div class="title">PAULO SENSI</div>
-        <div class="subtitle">Sensibilidade Free Fire por celular • Copiar em 1 toque</div>
-      </div>
-    </div>
+<header>
 
-    <div class="topbarActions">
-      <button class="btn ghost" id="btnInstall" title="Instalar no celular">Instalar</button>
-      <button class="btn ghost" id="btnOpenAdmin" title="Painel do dono">Painel</button>
-    </div>
-  </header>
+<div class="logo">
+<div class="logo-box">PS</div>
 
-  <main class="container">
-    <section class="hero">
-      <div class="heroLeft">
-        <div class="pill">
-          <span class="dot"></span>
-          Online • Atualiza pelo GitHub
-        </div>
-        <h1>Encontre sua sensi <span class="accent">perfeita</span> rápido.</h1>
-        <p>
-          Procure por marca/modelo. Se não existir, o sistema cria uma sugestão automática.
-        </p>
+<div>
+<h1>PAULO SENSI</h1>
+<div class="sub">Sensibilidade Free Fire por celular • Copiar em 1 toque</div>
+</div>
+</div>
 
-        <div class="searchRow">
-          <input id="searchInput" class="search" type="search" placeholder="Buscar celular… ex: Samsung A16, Redmi Note 11, Moto G84" autocomplete="off" />
-          <select id="brandFilter" class="select">
-            <option value="">Todas marcas</option>
-          </select>
-          <button id="btnRandom" class="btn">Aleatório</button>
-        </div>
+<button style="background:#111827;color:white;border:none;padding:8px 12px;border-radius:8px;">
+Painel
+</button>
 
-        <div class="heroStats">
-          <div class="stat">
-            <div class="statNum" id="statDevices">0</div>
-            <div class="statLbl">modelos na base</div>
-          </div>
-          <div class="stat">
-            <div class="statNum" id="statPremium">—</div>
-            <div class="statLbl">plano atual</div>
-          </div>
-          <div class="stat">
-            <div class="statNum" id="statUpdated">—</div>
-            <div class="statLbl">atualização</div>
-          </div>
-        </div>
-      </div>
+</header>
 
-      <div class="heroRight">
-        <div class="adCard">
-          <div class="adBadge">ANÚNCIO</div>
-          <div class="adTitle">Espaço de banner</div>
-          <div class="adText">
-            Aqui você coloca AdSense / outra rede depois.
-          </div>
-          <button class="btn small" id="btnFakeAd">Simular clique</button>
-        </div>
 
-        <div class="tipsCard">
-          <div class="tipsTitle">Dicas rápidas</div>
-          <ul class="tipsList">
-            <li>Use DPI + Geral + Red Dot.</li>
-            <li>Teste 3 partidas e ajuste ±2.</li>
-            <li>Se seu modelo não aparecer: digite e use “Gerar”.</li>
-          </ul>
-        </div>
-      </div>
-    </section>
+<main>
 
-    <section class="toolbar">
-      <div class="toolbarLeft">
-        <button class="btn ghost" id="btnSort">Ordenar: A→Z</button>
-        <button class="btn ghost" id="btnShowOnlyTop">Só populares: OFF</button>
-        <button class="btn ghost" id="btnGenerate">Gerar para busca</button>
-      </div>
-      <div class="toolbarRight">
-        <button class="btn ghost" id="btnShare">Compartilhar</button>
-      </div>
-    </section>
+<div class="title">
+Encontre sua sensi <span class="red">perfeita</span> rápido.
+</div>
 
-    <section class="grid" id="cardsGrid"></section>
+<p style="color:#9ca3af;">
+Procure por marca/modelo. Se não existir o sistema cria uma sugestão automática.
+</p>
 
-    <section class="plansWrap" id="plansWrap">
-      <div class="plansHeader">
-        <h2>Planos</h2>
-        <p>Depois que o plano é ativado, essa parte some e volta quando vencer (modo demo grátis).</p>
-      </div>
 
-      <div class="plans">
-        <div class="plan">
-          <div class="planTop">
-            <div class="planName">Grátis</div>
-            <div class="planPrice">R$0</div>
-          </div>
-          <ul class="planList">
-            <li>Base de celulares</li>
-            <li>Copiar sensi</li>
-            <li>Gerador automático (limitado)</li>
-          </ul>
-          <button class="btn" data-plan="free">Ativar</button>
-        </div>
+<div class="search">
+<input type="text" placeholder="Buscar celular... ex: Samsung A16, Redmi Note 11">
+</div>
 
-        <div class="plan featured">
-          <div class="planTop">
-            <div class="planName">Padrão</div>
-            <div class="planPrice">R$9,99</div>
-          </div>
-          <ul class="planList">
-            <li>Sem anúncios (opcional)</li>
-            <li>Mais precisão no gerador</li>
-            <li>Salvar favoritos</li>
-          </ul>
-          <button class="btn" data-plan="standard">Ativar (demo)</button>
-        </div>
 
-        <div class="plan">
-          <div class="planTop">
-            <div class="planName">Premium</div>
-            <div class="planPrice">R$19,50</div>
-          </div>
-          <ul class="planList">
-            <li>Tudo do Padrão</li>
-            <li>Painel avançado</li>
-            <li>Backup/Import/Export</li>
-          </ul>
-          <button class="btn" data-plan="premium">Ativar (demo)</button>
-        </div>
-      </div>
-    </section>
+<div class="cards">
 
-    <footer class="footer">
-      <div>© <span id="year"></span> PAULO SENSI • Feito para celular</div>
-      <div class="footerLinks">
-        <button class="link" id="btnPrivacy">Privacidade</button>
-        <button class="link" id="btnReset">Reset</button>
-      </div>
-    </footer>
-  </main>
+<div class="card">
 
-  <!-- Toast -->
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="phone">Samsung A16</div>
 
-  <!-- Modal -->
-  <div class="modalBackdrop" id="modalBackdrop" hidden>
-    <div class="modal" role="dialog" aria-modal="true">
-      <div class="modalTop">
-        <div class="modalTitle" id="modalTitle">Título</div>
-        <button class="iconBtn" id="modalClose">✕</button>
-      </div>
-      <div class="modalBody" id="modalBody"></div>
-    </div>
-  </div>
+<div class="info">Geral: 95</div>
+<div class="info">Red Dot: 90</div>
+<div class="info">DPI: 420</div>
 
-  <script src="./data.js"></script>
-  <script src="./app.js"></script>
+<button class="btn">Copiar Sensibilidade</button>
+
+</div>
+
+
+<div class="card">
+
+<div class="phone">Samsung A12</div>
+
+<div class="info">Geral: 92</div>
+<div class="info">Red Dot: 88</div>
+<div class="info">DPI: 400</div>
+
+<button class="btn">Copiar Sensibilidade</button>
+
+</div>
+
+
+<div class="card">
+
+<div class="phone">Redmi Note 11</div>
+
+<div class="info">Geral: 95</div>
+<div class="info">Red Dot: 90</div>
+<div class="info">DPI: 420</div>
+
+<button class="btn">Copiar Sensibilidade</button>
+
+</div>
+
+
+<div class="card">
+
+<div class="phone">Poco X3</div>
+
+<div class="info">Geral: 97</div>
+<div class="info">Red Dot: 92</div>
+<div class="info">DPI: 430</div>
+
+<button class="btn">Copiar Sensibilidade</button>
+
+</div>
+
+</div>
+
+</main>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+
 </body>
 </html>
