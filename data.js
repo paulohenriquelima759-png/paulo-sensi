@@ -1,54 +1,59 @@
-// data.js
-// Base inicial (você pode aumentar com IMPORT)
-// Estrutura: { id, brand, model, dpi, general, redDot, popular }
+/* Base local (sem servidor) */
+window.APP_DATA = {
+  meta: {
+    version: "v1.0",
+    updatedAt: "05/03/2026",
+    ownerHint: "PauloSensi"
+  },
 
-window.PS_DATA_VERSION = "v1.0";
-window.PS_UPDATED_AT = new Date().toISOString();
+  // modelos (você pode importar milhares pelo Painel)
+  phones: [
+    // Samsung
+    { name:"Samsung A16", brand:"Samsung", geral:95, red:90, dpi:420, popular:true },
+    { name:"Samsung A12", brand:"Samsung", geral:92, red:88, dpi:400, popular:true },
+    { name:"Samsung A22", brand:"Samsung", geral:94, red:90, dpi:410, popular:true },
+    { name:"Samsung A32", brand:"Samsung", geral:95, red:92, dpi:420, popular:false },
+    { name:"Samsung A52", brand:"Samsung", geral:97, red:94, dpi:430, popular:true },
+    { name:"Samsung A54", brand:"Samsung", geral:98, red:95, dpi:440, popular:true },
+    { name:"Samsung S21", brand:"Samsung", geral:99, red:96, dpi:560, popular:true },
+    { name:"Samsung S23", brand:"Samsung", geral:100, red:97, dpi:600, popular:true },
 
-window.PS_DEVICES = [
-  // Samsung
-  { id:"s-a16", brand:"Samsung", model:"A16", dpi:420, general:95, redDot:90, popular:true },
-  { id:"s-a12", brand:"Samsung", model:"A12", dpi:400, general:92, redDot:88, popular:true },
-  { id:"s-a22", brand:"Samsung", model:"A22", dpi:410, general:94, redDot:90, popular:true },
-  { id:"s-a32", brand:"Samsung", model:"A32", dpi:410, general:94, redDot:89, popular:true },
-  { id:"s-a52", brand:"Samsung", model:"A52", dpi:450, general:96, redDot:92, popular:true },
-  { id:"s-a53", brand:"Samsung", model:"A53", dpi:450, general:96, redDot:92, popular:true },
-  { id:"s-a54", brand:"Samsung", model:"A54", dpi:460, general:97, redDot:93, popular:true },
-  { id:"s-s20fe", brand:"Samsung", model:"S20 FE", dpi:520, general:98, redDot:95, popular:true },
-  { id:"s-s21", brand:"Samsung", model:"S21", dpi:560, general:99, redDot:96, popular:false },
-  { id:"s-s22", brand:"Samsung", model:"S22", dpi:560, general:99, redDot:96, popular:false },
-  { id:"s-s23", brand:"Samsung", model:"S23", dpi:600, general:100, redDot:97, popular:false },
+    // Apple
+    { name:"iPhone 11", brand:"Apple", geral:99, red:96, dpi:560, popular:true, vip:true },
+    { name:"iPhone 12", brand:"Apple", geral:100, red:97, dpi:600, popular:true, vip:true },
+    { name:"iPhone 13", brand:"Apple", geral:100, red:97, dpi:600, popular:true, vip:true },
+    { name:"iPhone XR", brand:"Apple", geral:98, red:95, dpi:520, popular:false, vip:true },
 
-  // Xiaomi / Redmi / Poco
-  { id:"x-rn11", brand:"Xiaomi", model:"Redmi Note 11", dpi:420, general:95, redDot:90, popular:true },
-  { id:"x-rn12", brand:"Xiaomi", model:"Redmi Note 12", dpi:430, general:96, redDot:91, popular:true },
-  { id:"x-rn13", brand:"Xiaomi", model:"Redmi Note 13", dpi:440, general:97, redDot:92, popular:true },
-  { id:"p-x3", brand:"Poco", model:"X3", dpi:500, general:97, redDot:93, popular:true },
-  { id:"p-x3pro", brand:"Poco", model:"X3 Pro", dpi:520, general:98, redDot:95, popular:true },
-  { id:"p-f3", brand:"Poco", model:"F3", dpi:560, general:99, redDot:96, popular:false },
+    // Xiaomi / Redmi / Poco
+    { name:"Redmi Note 11", brand:"Xiaomi", geral:95, red:90, dpi:420, popular:true },
+    { name:"Redmi Note 12", brand:"Xiaomi", geral:96, red:92, dpi:430, popular:true },
+    { name:"Redmi Note 13", brand:"Xiaomi", geral:97, red:93, dpi:440, popular:true },
+    { name:"Poco X3", brand:"Xiaomi", geral:97, red:92, dpi:430, popular:true },
+    { name:"Poco X5", brand:"Xiaomi", geral:98, red:95, dpi:450, popular:true },
 
-  // Motorola
-  { id:"m-g22", brand:"Motorola", model:"Moto G22", dpi:410, general:93, redDot:88, popular:true },
-  { id:"m-g32", brand:"Motorola", model:"Moto G32", dpi:430, general:95, redDot:90, popular:true },
-  { id:"m-g52", brand:"Motorola", model:"Moto G52", dpi:450, general:96, redDot:92, popular:true },
-  { id:"m-g54", brand:"Motorola", model:"Moto G54", dpi:450, general:97, redDot:92, popular:true },
-  { id:"m-g84", brand:"Motorola", model:"Moto G84", dpi:460, general:97, redDot:93, popular:true },
-  { id:"m-edge20", brand:"Motorola", model:"Edge 20", dpi:520, general:98, redDot:95, popular:false },
+    // Motorola
+    { name:"Moto G84", brand:"Motorola", geral:96, red:92, dpi:430, popular:true },
+    { name:"Moto G54", brand:"Motorola", geral:95, red:91, dpi:420, popular:true },
+    { name:"Moto G73", brand:"Motorola", geral:96, red:92, dpi:430, popular:false },
 
-  // Apple
-  { id:"a-ip11", brand:"Apple", model:"iPhone 11", dpi:560, general:99, redDot:96, popular:true },
-  { id:"a-ip12", brand:"Apple", model:"iPhone 12", dpi:600, general:100, redDot:97, popular:true },
-  { id:"a-ip13", brand:"Apple", model:"iPhone 13", dpi:620, general:100, redDot:97, popular:true },
-  { id:"a-ip14", brand:"Apple", model:"iPhone 14", dpi:640, general:100, redDot:98, popular:false },
-  { id:"a-ip15", brand:"Apple", model:"iPhone 15", dpi:660, general:100, redDot:98, popular:false },
+    // Realme
+    { name:"Realme C55", brand:"Realme", geral:95, red:90, dpi:420, popular:true },
+    { name:"Realme 11", brand:"Realme", geral:96, red:92, dpi:430, popular:false },
 
-  // Realme / Oppo / Vivo (exemplos)
-  { id:"r-c55", brand:"Realme", model:"C55", dpi:420, general:95, redDot:90, popular:true },
-  { id:"o-a57", brand:"Oppo", model:"A57", dpi:410, general:93, redDot:88, popular:false },
-  { id:"v-y21", brand:"Vivo", model:"Y21", dpi:400, general:92, redDot:87, popular:false },
-];
+    // Infinix
+    { name:"Infinix Hot 30", brand:"Infinix", geral:94, red:90, dpi:410, popular:false },
 
-// Marcas conhecidas (pra filtro)
-window.PS_BRANDS = [
-  "Samsung","Motorola","Xiaomi","Redmi","Poco","Apple","Realme","Oppo","Vivo","Infinix","Asus","LG","Huawei","Nokia","Tecno","OnePlus"
-];
+    // Oppo
+    { name:"OPPO A78", brand:"OPPO", geral:95, red:91, dpi:420, popular:false },
+
+    // Vivo
+    { name:"Vivo Y21", brand:"Vivo", geral:93, red:89, dpi:405, popular:false }
+  ],
+
+  ad: {
+    visible: true,
+    title: "Espaço de banner",
+    sub: "Aqui você coloca AdSense / outra rede depois.",
+    link: ""
+  }
+};
