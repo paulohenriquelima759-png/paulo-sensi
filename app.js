@@ -1,808 +1,535 @@
-// app.js
 (() => {
-  "use strict";
-
-  // --------------------------
-  // Util
-  // --------------------------
-  const $ = (sel) => document.querySelector(sel);
-  const $$ = (sel) => [...document.querySelectorAll(sel)];
-  const now = () => Date.now();
-  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-  const safe = (v, fallback="") => (v ?? fallback).toString();
-
-  const storage = {
-    get(key, fallback=null){
-      try{
-        const v = localStorage.getItem(key);
-        return v ? JSON.parse(v) : fallback;
-      }catch{ return fallback; }
-    },
-    set(key, value){
-      localStorage.setItem(key, JSON.stringify(value));
-    },
-    del(key){ localStorage.removeItem(key); }
-  };
-
-  const toast = (msg) => {
-    const el = $("#toast");
-    el.textContent = msg;
-    el.classList.add("show");
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => el.classList.remove("show"), 1700);
-  };
-
-  const modal = {
-    open(title, html){
-      $("#modalTitle").textContent = title;
-      $("#modalBody").innerHTML = html;
-      $("#modalBackdrop").hidden = false;
-    },
-    close(){
-      $("#modalBackdrop").hidden = true;
-      $("#modalBody").innerHTML = "";
-    }
-  };
-
-  $("#modalClose").addEventListener("click", modal.close);
-  $("#modalBackdrop").addEventListener("click", (e) => {
-    if(e.target.id === "modalBackdrop") modal.close();
-  });
-
-  // --------------------------
-  // Plano (DEMO)
-  // --------------------------
-  const PLAN_KEY = "ps_plan";
-  const PLAN_EXP_KEY = "ps_plan_exp";
-
-  const plan = {
-    get(){
-      const p = storage.get(PLAN_KEY, "free");
-      const exp = storage.get(PLAN_EXP_KEY, 0);
-      if(exp && now() > exp){
-        storage.set(PLAN_KEY, "free");
-        storage.set(PLAN_EXP_KEY, 0);
-        return { name:"free", exp:0, expired:true };
-      }
-      return { name:p, exp, expired:false };
-    },
-    label(name){
-      if(name === "premium") return "Premium";
-      if(name === "standard") return "Padrão";
-      return "Grátis";
-    },
-    // demo: ativa e define expiração
-    activate(name){
-      if(name === "free"){
-        storage.set(PLAN_KEY, "free");
-        storage.set(PLAN_EXP_KEY, 0);
-        toast("Plano grátis ativado ✅");
-        return;
-      }
-      // 30 dias (demo)
-      const exp = now() + 30 * 24 * 60 * 60 * 1000;
-      storage.set(PLAN_KEY, name);
-      storage.set(PLAN_EXP_KEY, exp);
-      toast(`Plano ${plan.label(name)} ativado ✅ (demo 30 dias)`);
-    }
-  };
-
-  function refreshPlansUI(){
-    const p = plan.get();
-    $("#statPremium").textContent = plan.label(p.name);
-    const wrap = $("#plansWrap");
-    // regra: se padrão/premium ativo -> some; se expirar -> volta
-    if(p.name !== "free") wrap.style.display = "none";
-    else wrap.style.display = "block";
-  }
-
-  // --------------------------
-  // Dados / normalização
-  // --------------------------
-  const normalize = (s) => safe(s).trim().toLowerCase().replace(/\s+/g, " ");
-  const keyDevice = (d) => `${normalize(d.brand)} ${normalize(d.model)}`;
+  const $ = (q) => document.querySelector(q);
+  const $$ = (q) => [...document.querySelectorAll(q)];
 
   const state = {
     sortAZ: true,
     onlyPopular: false,
-    brand: "",
+    brand: "__ALL__",
     q: "",
-    devices: [],
-    favorites: storage.get("ps_favs", []),
-    adminUnlocked: false
+    selected: null,
+    plan: localStorage.getItem("ps_plan") || "free",   // free | std | pro
+    vip: localStorage.getItem("ps_vip") || "",         // vip code local
+    owner: false,
+    favorites: new Set(JSON.parse(localStorage.getItem("ps_favs") || "[]"))
   };
 
-  function loadDevices(){
-    // base + importados
-    const imported = storage.get("ps_imported_devices", []);
-    const base = (window.PS_DEVICES || []).slice();
-    const merged = [...base, ...imported];
+  const meta = window.APP_DATA?.meta || { version:"v1.0", updatedAt:"" };
 
-    // remover duplicados (brand+model)
-    const seen = new Set();
-    const out = [];
-    for(const d of merged){
-      const k = keyDevice(d);
-      if(seen.has(k)) continue;
-      seen.add(k);
-      out.push({
-        id: d.id || cryptoId(),
-        brand: safe(d.brand),
-        model: safe(d.model),
-        dpi: Number(d.dpi ?? 420),
-        general: Number(d.general ?? 95),
-        redDot: Number(d.redDot ?? 90),
-        popular: Boolean(d.popular)
-      });
+  // --- Helpers ---
+  const toast = (msg) => {
+    const t = $("#toast");
+    t.textContent = msg;
+    t.classList.remove("hidden");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => t.classList.add("hidden"), 1700);
+  };
+
+  const norm = (s) => (s||"")
+    .toString()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase().trim();
+
+  const getPhones = () => {
+    const stored = localStorage.getItem("ps_phones");
+    if (stored) {
+      try { return JSON.parse(stored); } catch {}
     }
-    state.devices = out;
-    $("#statDevices").textContent = String(out.length);
-    $("#statUpdated").textContent = (window.PS_DATA_VERSION || "v?") + " • " + (new Date(window.PS_UPDATED_AT || Date.now())).toLocaleDateString();
-  }
+    return (window.APP_DATA?.phones || []).slice();
+  };
 
-  function cryptoId(){
-    try{
-      return crypto.getRandomValues(new Uint32Array(1))[0].toString(16) + "-" + Date.now().toString(16);
-    }catch{
-      return Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
-    }
-  }
+  const savePhones = (phones) => localStorage.setItem("ps_phones", JSON.stringify(phones));
 
-  // --------------------------
-  // Gerador automático (profissional simples)
-  // Se o modelo não existe, cria sensi baseada na marca + "nível"
-  // --------------------------
-  function autoGenerateFor(queryText){
-    const raw = safe(queryText).trim();
-    if(!raw) return null;
+  const getAd = () => {
+    const stored = localStorage.getItem("ps_ad");
+    if (stored) { try { return JSON.parse(stored); } catch {} }
+    return window.APP_DATA?.ad || { visible:true, title:"Espaço de banner", sub:"", link:"" };
+  };
 
-    // tenta separar marca/modelo
-    const parts = raw.split(" ");
-    let brand = parts[0] || "Android";
-    let model = parts.slice(1).join(" ").trim();
-    if(!model){
-      model = brand;
-      brand = "Android";
-    }
+  const saveAd = (ad) => localStorage.setItem("ps_ad", JSON.stringify(ad));
 
-    // heurística por marca (só pra dar um ponto de partida)
-    const b = normalize(brand);
-    let dpiBase = 420, gBase = 95, rBase = 90;
+  const isVipUnlocked = () => {
+    // sem servidor => trava simples
+    if (state.plan === "pro") return true;
+    if (state.plan === "std") return true;
+    if (state.vip && state.vip.length >= 8) return true;
+    return false;
+  };
 
-    if(b.includes("apple") || b.includes("iphone")){
-      dpiBase = 620; gBase = 100; rBase = 97;
-      brand = "Apple";
-    } else if(b.includes("samsung")){
-      dpiBase = 450; gBase = 96; rBase = 92;
-      brand = "Samsung";
-    } else if(b.includes("motorola") || b.includes("moto")){
-      dpiBase = 440; gBase = 95; rBase = 90;
-      brand = "Motorola";
-    } else if(b.includes("poco")){
-      dpiBase = 520; gBase = 98; rBase = 95;
-      brand = "Poco";
-    } else if(b.includes("xiaomi") || b.includes("redmi")){
-      dpiBase = 440; gBase = 96; rBase = 91;
-      brand = "Xiaomi";
-    } else if(b.includes("realme")){
-      dpiBase = 430; gBase = 95; rBase = 90;
-      brand = "Realme";
-    }
+  const planLabel = () => {
+    if (state.plan === "pro") return "Premium";
+    if (state.plan === "std") return "Padrão";
+    return "Grátis";
+  };
 
-    // melhora pela “geração” numérica (A12 vs A54, RN11 vs RN13 etc.)
-    const num = extractNumber(raw);
-    const bump = clamp(Math.floor((num || 0) / 10), 0, 6); // 0..6
-    const dpi = clamp(dpiBase + bump * 10, 380, 700);
-    const general = clamp(gBase + bump, 85, 100);
-    const redDot = clamp(rBase + bump, 80, 100);
-
-    return {
-      id: "gen-" + cryptoId(),
-      brand,
-      model,
-      dpi,
-      general,
-      redDot,
-      popular: false,
-      generated: true
-    };
-  }
-
-  function extractNumber(s){
-    const m = safe(s).match(/(\d{1,3})/);
-    return m ? Number(m[1]) : null;
-  }
-
-  // --------------------------
-  // Render
-  // --------------------------
-  function deviceToCopyText(d){
-    return [
-      `PAULO SENSI - ${d.brand} ${d.model}`,
-      `Geral: ${d.general}`,
-      `Red Dot: ${d.redDot}`,
-      `DPI: ${d.dpi}`,
-    ].join("\n");
-  }
-
-  async function copyText(text){
-    try{
-      await navigator.clipboard.writeText(text);
-      toast("Copiado ✅");
-    }catch{
+  const copyText = async (txt) => {
+    try {
+      await navigator.clipboard.writeText(txt);
+      toast("Copiado! ✅");
+    } catch {
       // fallback
       const ta = document.createElement("textarea");
-      ta.value = text;
+      ta.value = txt;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand("copy");
       ta.remove();
-      toast("Copiado ✅");
+      toast("Copiado! ✅");
     }
-  }
+  };
 
-  function isFav(id){
-    return state.favorites.includes(id);
-  }
+  // --- Rendering ---
+  const fillBrands = (phones) => {
+    const brands = Array.from(new Set(phones.map(p => p.brand).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+    const sel = $("#brandSelect");
+    const keep = sel.value || "__ALL__";
+    sel.innerHTML = `<option value="__ALL__">Todas marcas</option>` + brands.map(b => `<option value="${b}">${b}</option>`).join("");
+    sel.value = brands.includes(keep) ? keep : "__ALL__";
+  };
 
-  function toggleFav(id){
-    if(isFav(id)){
-      state.favorites = state.favorites.filter(x => x !== id);
-      toast("Removido dos favoritos");
-    }else{
-      state.favorites = [...state.favorites, id];
-      toast("Favoritado ⭐");
-    }
-    storage.set("ps_favs", state.favorites);
-    render();
-  }
-
-  function matches(d){
-    const q = normalize(state.q);
-    const brandOk = !state.brand || normalize(d.brand) === normalize(state.brand);
-    if(!brandOk) return false;
-
-    if(state.onlyPopular && !d.popular) return false;
-
-    if(!q) return true;
-
-    const t = normalize(`${d.brand} ${d.model}`);
-    return t.includes(q);
-  }
-
-  function sortDevices(list){
-    if(state.sortAZ){
-      return list.sort((a,b) => (a.brand+a.model).localeCompare(b.brand+b.model, "pt-BR"));
-    }
-    // “melhor” primeiro (pelo geral)
-    return list.sort((a,b) => (b.general - a.general) || (b.redDot - a.redDot));
-  }
-
-  function render(){
-    const grid = $("#cardsGrid");
-    grid.innerHTML = "";
-
-    let list = state.devices.filter(matches);
-
-    // se não encontrou e tem busca -> oferece gerado
-    if(list.length === 0 && state.q.trim().length >= 2){
-      const gen = autoGenerateFor(state.q);
-      if(gen){
-        list = [gen];
-      }
-    }
-
-    sortDevices(list);
-
-    for(const d of list){
-      const fav = isFav(d.id);
-      const badge = d.generated ? "Gerado" : (d.popular ? "Popular" : "Base");
-      const html = `
-        <article class="card">
-          <div class="cardTop">
-            <span class="badge">${badge}</span>
-            <button class="btn ghost small" data-fav="${d.id}">${fav ? "★" : "☆"} Favorito</button>
-          </div>
-
-          <div class="deviceName">${escapeHtml(d.brand)} ${escapeHtml(d.model)}</div>
-          <div class="deviceBrand">Config Free Fire • PAULO SENSI</div>
-
-          <div class="metrics">
-            <div class="metric">
-              <div class="k">Geral</div>
-              <div class="v">${Number(d.general)}</div>
-            </div>
-            <div class="metric">
-              <div class="k">Red Dot</div>
-              <div class="v">${Number(d.redDot)}</div>
-            </div>
-            <div class="metric" style="grid-column:1/-1">
-              <div class="k">DPI</div>
-              <div class="v">${Number(d.dpi)}</div>
-            </div>
-          </div>
-
-          <div class="cardActions">
-            <button class="btn" data-copy="${d.id}">Copiar Sensibilidade</button>
-            <button class="btn ghost" data-view="${d.id}">Ver detalhes</button>
-          </div>
-        </article>
-      `;
-      grid.insertAdjacentHTML("beforeend", html);
-    }
-
-    // actions
-    $$("[data-copy]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-copy");
-        const d = state.devices.find(x => x.id === id) || autoGenerateFor(state.q) || null;
-        if(!d) return;
-        copyText(deviceToCopyText(d));
-      });
+  const filtered = (phones) => {
+    const qn = norm(state.q);
+    return phones.filter(p => {
+      if (state.brand !== "__ALL__" && p.brand !== state.brand) return false;
+      if (state.onlyPopular && !p.popular) return false;
+      if (!qn) return true;
+      const hay = norm(`${p.brand} ${p.name}`);
+      return hay.includes(qn);
     });
+  };
 
-    $$("[data-view]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-view");
-        const d = state.devices.find(x => x.id === id) || autoGenerateFor(state.q);
-        openDetails(d);
-      });
-    });
+  const sortPhones = (arr) => {
+    const a = arr.slice();
+    a.sort((x,y) => state.sortAZ ? x.name.localeCompare(y.name) : y.name.localeCompare(x.name));
+    return a;
+  };
 
-    $$("[data-fav]").forEach(btn => {
-      btn.addEventListener("click", () => toggleFav(btn.getAttribute("data-fav")));
-    });
-  }
+  const renderStats = (total) => {
+    $("#statCount").textContent = total;
+    $("#statPlan").textContent = planLabel();
+    $("#statVer").textContent = meta.version || "v1.0";
+    $("#statDate").textContent = meta.updatedAt ? meta.updatedAt : "atualização";
+    $("#year").textContent = new Date().getFullYear();
+  };
 
-  function escapeHtml(s){
-    return safe(s)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-
-  function openDetails(d){
-    if(!d) return;
-    const txt = deviceToCopyText(d);
-    modal.open(`${d.brand} ${d.model}`, `
-      <div class="fieldRow">
-        <div>
-          <div class="smallNote">Geral</div>
-          <input class="input" value="${Number(d.general)}" readonly />
-        </div>
-        <div>
-          <div class="smallNote">Red Dot</div>
-          <input class="input" value="${Number(d.redDot)}" readonly />
-        </div>
-      </div>
-      <div class="fieldRow" style="margin-top:10px">
-        <div>
-          <div class="smallNote">DPI</div>
-          <input class="input" value="${Number(d.dpi)}" readonly />
-        </div>
-        <div>
-          <div class="smallNote">Ações rápidas</div>
-          <button class="btn small" id="btnCopyInModal">Copiar</button>
-        </div>
-      </div>
-
-      <hr/>
-      <div class="smallNote">Texto que copia:</div>
-      <div class="codeBox">${escapeHtml(txt)}</div>
-      <div class="smallNote">Dica: ajuste ±2 e teste 3 partidas.</div>
-    `);
-
-    setTimeout(() => {
-      const b = $("#btnCopyInModal");
-      if(b) b.addEventListener("click", () => copyText(txt));
-    }, 0);
-  }
-
-  // --------------------------
-  // Admin (Painel do dono)
-  // - Modo simples com senha local (pra não ter custo)
-  // Depois a gente coloca servidor de verdade.
-  // --------------------------
-  const ADMIN_PASS_KEY = "ps_admin_pass";
-  const ADMIN_DEFAULT = "paulo123"; // você muda no painel
-
-  function adminGetPass(){
-    return storage.get(ADMIN_PASS_KEY, ADMIN_DEFAULT);
-  }
-
-  function openAdmin(){
-    const p = plan.get();
-    // Premium libera mais coisas (demo)
-    const isPremium = (p.name === "premium" || p.name === "standard");
-
-    modal.open("Painel do Dono 👑", `
-      <div class="smallNote">
-        ⚠️ Por enquanto é sem servidor (grátis). Depois a gente coloca servidor e login real.
-      </div>
-
-      <div class="fieldRow" style="margin-top:10px">
-        <div>
-          <div class="smallNote">Senha do painel</div>
-          <input id="adminPassInput" class="input" placeholder="Digite a senha" />
-          <div class="smallNote">Padrão: <b>${ADMIN_DEFAULT}</b></div>
-        </div>
-        <div>
-          <div class="smallNote">Ações</div>
-          <button class="btn small" id="btnAdminLogin">Entrar</button>
-          <button class="btn ghost small" id="btnAdminHelp">Ajuda</button>
-        </div>
-      </div>
-
-      <hr/>
-
-      <div id="adminArea" style="display:none">
-        <div class="pill"><span class="dot"></span> Admin ativo</div>
-
-        <h3 style="margin:10px 0 6px">Funções rápidas (profissional)</h3>
-        <div class="smallNote">Tem MUITAS funções aqui. Você consegue montar “todos os celulares” com import.</div>
-
-        <div class="fieldRow" style="margin-top:10px">
-          <div>
-            <div class="smallNote">Importar (JSON)</div>
-            <textarea id="importJson" class="input" rows="6" placeholder='Cole um JSON: [{"brand":"Samsung","model":"A10","dpi":400,"general":92,"redDot":88}]'></textarea>
-            <div class="smallNote">Dica: você pode gerar isso no celular e colar aqui.</div>
-          </div>
-          <div>
-            <div class="smallNote">Gerar lista rápida (1000 modelos)</div>
-            <button class="btn small" id="btnGeneratePack">Gerar pacote</button>
-            <button class="btn ghost small" id="btnExport">Exportar tudo</button>
-            <button class="btn ghost small" id="btnClearImported">Apagar importados</button>
-            <div class="smallNote" style="margin-top:8px">
-              Premium: ${isPremium ? "Ativo ✅" : "Não (mas demo funciona)"}.
-            </div>
-          </div>
-        </div>
-
-        <hr/>
-
-        <h3 style="margin:0 0 6px">Configurações</h3>
-        <div class="fieldRow">
-          <div>
-            <div class="smallNote">Mudar senha do painel</div>
-            <input id="newAdminPass" class="input" placeholder="Nova senha" />
-            <button class="btn small" id="btnSavePass" style="margin-top:8px">Salvar senha</button>
-          </div>
-          <div>
-            <div class="smallNote">Modo anúncios</div>
-            <button class="btn ghost small" id="btnAdsToggle">Alternar anúncios</button>
-            <div class="smallNote">No padrão/premium você pode deixar anúncios OFF.</div>
-          </div>
-        </div>
-
-        <hr/>
-
-        <h3 style="margin:0 0 6px">Ferramentas</h3>
-        <div class="fieldRow">
-          <div>
-            <button class="btn ghost small" id="btnResetFavs">Reset favoritos</button>
-            <button class="btn ghost small" id="btnResetAll">Reset app inteiro</button>
-          </div>
-          <div>
-            <button class="btn ghost small" id="btnDebug">Ver logs</button>
-            <button class="btn ghost small" id="btnCloseAdmin">Fechar</button>
-          </div>
-        </div>
-
-        <div class="smallNote" style="margin-top:10px">
-          ✅ Esse painel já tem mais de 30 ferramentas e está pronto pra eu ir adicionando mais 100+ (com servidor depois).
-        </div>
-      </div>
-    `);
-
-    setTimeout(() => {
-      $("#btnAdminHelp")?.addEventListener("click", () => toast("Senha padrão: paulo123 (depois você muda)"));
-      $("#btnAdminLogin")?.addEventListener("click", () => {
-        const pass = $("#adminPassInput").value.trim();
-        if(pass && pass === adminGetPass()){
-          $("#adminArea").style.display = "block";
-          toast("Admin liberado ✅");
-          wireAdminTools();
-        } else {
-          toast("Senha errada ❌");
-        }
-      });
-    }, 0);
-  }
-
-  function wireAdminTools(){
-    $("#btnCloseAdmin")?.addEventListener("click", modal.close);
-
-    $("#btnSavePass")?.addEventListener("click", () => {
-      const np = $("#newAdminPass").value.trim();
-      if(np.length < 4) return toast("Senha curta demais (mín 4)");
-      storage.set(ADMIN_PASS_KEY, np);
-      toast("Senha salva ✅");
-    });
-
-    $("#btnExport")?.addEventListener("click", () => {
-      const imported = storage.get("ps_imported_devices", []);
-      const all = [...(window.PS_DEVICES||[]), ...imported];
-      modal.open("Exportar", `
-        <div class="smallNote">Copie e salve esse JSON (backup).</div>
-        <div class="codeBox">${escapeHtml(JSON.stringify(all, null, 2))}</div>
-        <hr/>
-        <button class="btn small" id="btnCopyExport">Copiar JSON</button>
-      `);
-      setTimeout(() => {
-        $("#btnCopyExport")?.addEventListener("click", () => copyText(JSON.stringify(all)));
-      }, 0);
-    });
-
-    $("#btnClearImported")?.addEventListener("click", () => {
-      storage.set("ps_imported_devices", []);
-      loadDevices(); render();
-      toast("Importados apagados ✅");
-    });
-
-    $("#btnGeneratePack")?.addEventListener("click", () => {
-      // Gera um pacote grande (exemplo), sem travar
-      const pack = generateBigPack();
-      const prev = storage.get("ps_imported_devices", []);
-      storage.set("ps_imported_devices", [...prev, ...pack]);
-      loadDevices(); render();
-      toast(`Pacote gerado ✅ (+${pack.length})`);
-    });
-
-    $("#btnResetFavs")?.addEventListener("click", () => {
-      storage.set("ps_favs", []);
-      state.favorites = [];
-      render();
-      toast("Favoritos resetados ✅");
-    });
-
-    $("#btnResetAll")?.addEventListener("click", () => {
-      if(!confirm("Resetar tudo?")) return;
-      localStorage.clear();
-      location.reload();
-    });
-
-    $("#btnDebug")?.addEventListener("click", () => {
-      const p = plan.get();
-      modal.open("Logs / Debug", `
-        <div class="codeBox">${escapeHtml(JSON.stringify({
-          plan: p,
-          dataVersion: window.PS_DATA_VERSION,
-          updatedAt: window.PS_UPDATED_AT,
-          devices: state.devices.length,
-          imported: storage.get("ps_imported_devices", []).length,
-          favorites: state.favorites.length
-        }, null, 2))}</div>
-      `);
-    });
-
-    $("#btnAdsToggle")?.addEventListener("click", () => {
-      const p = plan.get();
-      const isPro = (p.name !== "free");
-      if(!isPro){
-        toast("Anúncios OFF só no Padrão/Premium (demo)");
-        return;
-      }
-      const v = storage.get("ps_ads_off", false);
-      storage.set("ps_ads_off", !v);
-      toast(!v ? "Anúncios: OFF ✅" : "Anúncios: ON ✅");
-    });
-
-    // Import JSON
-    $("#importJson")?.addEventListener("change", () => {});
-    $("#importJson")?.addEventListener("blur", () => {});
-    $("#importJson")?.addEventListener("keydown", (e) => {
-      if(e.key === "Enter" && (e.ctrlKey || e.metaKey)){
-        doImportJson();
-      }
-    });
-
-    // botão rápido: importar (clicando fora)
-    const imp = $("#importJson");
-    if(imp){
-      imp.insertAdjacentHTML("afterend", `<button class="btn small" id="btnImportNow" style="margin-top:8px">Importar JSON</button>`);
-      $("#btnImportNow")?.addEventListener("click", doImportJson);
-    }
-  }
-
-  function doImportJson(){
-    try{
-      const txt = $("#importJson").value.trim();
-      if(!txt) return toast("Cole um JSON primeiro");
-      const arr = JSON.parse(txt);
-      if(!Array.isArray(arr)) return toast("JSON precisa ser lista []");
-      const cleaned = arr
-        .filter(x => x && x.brand && x.model)
-        .map(x => ({
-          id: x.id || cryptoId(),
-          brand: safe(x.brand),
-          model: safe(x.model),
-          dpi: Number(x.dpi ?? 420),
-          general: Number(x.general ?? 95),
-          redDot: Number(x.redDot ?? 90),
-          popular: Boolean(x.popular)
-        }));
-      const prev = storage.get("ps_imported_devices", []);
-      storage.set("ps_imported_devices", [...prev, ...cleaned]);
-      loadDevices(); render();
-      toast(`Importado ✅ (+${cleaned.length})`);
-    }catch{
-      toast("Erro no JSON ❌");
-    }
-  }
-
-  // Gera pacote grande pra virar “todos”
-  function generateBigPack(){
-    const brands = [
-      { brand:"Samsung", modelsPrefix:["A","M","S"] },
-      { brand:"Motorola", modelsPrefix:["Moto G","Moto E","Edge"] },
-      { brand:"Xiaomi", modelsPrefix:["Redmi Note","Redmi","Mi","Poco"] },
-      { brand:"Apple", modelsPrefix:["iPhone"] },
-      { brand:"Realme", modelsPrefix:["C","Narzo","GT"] },
-      { brand:"Oppo", modelsPrefix:["A","Reno"] },
-      { brand:"Vivo", modelsPrefix:["Y","V"] }
+  const sensiString = (p) => {
+    // ESSÊNCIA COMPLETA (não só geral e red)
+    // Você pode ajustar aqui depois
+    const lines = [
+      `📌 ${p.name} (${p.brand})`,
+      `Geral: ${p.geral}`,
+      `Red Dot: ${p.red}`,
+      `DPI: ${p.dpi}`,
+      `Dica: Ajuste ±2 se precisar`,
+      `PAULO SENSI ✅`
     ];
+    return lines.join("\n");
+  };
 
-    const pack = [];
-    for(const b of brands){
-      for(const pref of b.modelsPrefix){
-        for(let n=1; n<=45; n++){
-          const model = (b.brand === "Apple")
-            ? `${pref} ${clamp(8+n, 8, 20)}`
-            : `${pref} ${n}`;
-          const gen = autoGenerateFor(`${b.brand} ${model}`);
-          pack.push({
-            id: `pack-${cryptoId()}`,
-            brand: b.brand,
-            model,
-            dpi: gen.dpi,
-            general: gen.general,
-            redDot: gen.redDot,
-            popular: n % 7 === 0
-          });
-        }
-      }
-    }
-    // ~ 7*3*45 = 945 (aprox)
-    return pack;
-  }
+  const cardHTML = (p) => {
+    const fav = state.favorites.has(p.name) ? "★ Favorito" : "☆ Favorito";
+    const vipBadge = p.vip ? `<span class="badge vip">VIP</span>` : "";
+    const popBadge = p.popular ? `<span class="badge">Popular</span>` : "";
+    return `
+      <div class="card">
+        <div class="card-top">
+          <div class="card-title">${p.name}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+            ${vipBadge}
+            ${popBadge}
+          </div>
+        </div>
 
-  // --------------------------
-  // Eventos UI
-  // --------------------------
-  function fillBrandFilter(){
-    const select = $("#brandFilter");
-    const set = new Set([...(window.PS_BRANDS||[]), ...state.devices.map(d => d.brand)]);
-    const brands = [...set].filter(Boolean).sort((a,b) => a.localeCompare(b, "pt-BR"));
-    for(const b of brands){
-      const opt = document.createElement("option");
-      opt.value = b;
-      opt.textContent = b;
-      select.appendChild(opt);
-    }
-  }
+        <div class="kvrow">
+          <div class="kvbox"><div class="k">Geral</div><div class="v">${p.geral}</div></div>
+          <div class="kvbox"><div class="k">Red Dot</div><div class="v">${p.red}</div></div>
+          <div class="kvbox"><div class="k">DPI</div><div class="v">${p.dpi}</div></div>
+        </div>
 
-  $("#searchInput").addEventListener("input", (e) => {
-    state.q = e.target.value;
-    render();
-  });
+        <div class="card-actions">
+          <button class="btn btn-primary btnCopy">Copiar Sensibilidade</button>
+          <button class="btn btn-soft btnDetails">Ver detalhes</button>
+        </div>
 
-  $("#brandFilter").addEventListener("change", (e) => {
-    state.brand = e.target.value;
-    render();
-  });
-
-  $("#btnSort").addEventListener("click", () => {
-    state.sortAZ = !state.sortAZ;
-    $("#btnSort").textContent = state.sortAZ ? "Ordenar: A→Z" : "Ordenar: Melhor";
-    render();
-  });
-
-  $("#btnShowOnlyTop").addEventListener("click", () => {
-    state.onlyPopular = !state.onlyPopular;
-    $("#btnShowOnlyTop").textContent = state.onlyPopular ? "Só populares: ON" : "Só populares: OFF";
-    render();
-  });
-
-  $("#btnRandom").addEventListener("click", () => {
-    const list = state.devices.filter(d => !state.onlyPopular || d.popular);
-    const d = list[Math.floor(Math.random()*list.length)];
-    if(!d) return;
-    openDetails(d);
-  });
-
-  $("#btnGenerate").addEventListener("click", () => {
-    const q = $("#searchInput").value.trim();
-    const gen = autoGenerateFor(q);
-    if(!gen) return toast("Digite um modelo primeiro");
-    openDetails(gen);
-  });
-
-  $("#btnShare").addEventListener("click", async () => {
-    const url = location.href;
-    try{
-      if(navigator.share){
-        await navigator.share({ title:"PAULO SENSI", text:"Sensi por celular", url });
-      } else {
-        await copyText(url);
-        toast("Link copiado ✅");
-      }
-    }catch{}
-  });
-
-  $("#btnFakeAd").addEventListener("click", () => {
-    toast("Clique registrado (demo) ✅");
-  });
-
-  $("#btnOpenAdmin").addEventListener("click", openAdmin);
-
-  $("#btnPrivacy").addEventListener("click", () => {
-    modal.open("Privacidade", `
-      <div class="smallNote">
-        Este app usa armazenamento local (localStorage) para salvar:
-        plano (demo), favoritos e importações. Não coleta dados pessoais.
+        <div class="card-actions" style="margin-top:10px">
+          <button class="btn btn-ghost btnFav">${fav}</button>
+        </div>
       </div>
-    `);
-  });
+    `;
+  };
 
-  $("#btnReset").addEventListener("click", () => {
-    if(confirm("Resetar app? (apaga favoritos e importados)")){
-      storage.del("ps_favs");
-      storage.del("ps_imported_devices");
-      storage.del("ps_plan");
-      storage.del("ps_plan_exp");
-      location.reload();
-    }
-  });
+  const render = () => {
+    const phones = getPhones();
+    fillBrands(phones);
 
-  // Planos (demo)
-  $$("[data-plan]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const p = btn.getAttribute("data-plan");
-      plan.activate(p);
-      refreshPlansUI();
+    const list = sortPhones(filtered(phones));
+    renderStats(phones.length);
+
+    const cards = $("#cards");
+    cards.innerHTML = list.map(cardHTML).join("");
+
+    // bind events
+    const allCards = $$("#cards .card");
+    allCards.forEach((node, idx) => {
+      const p = list[idx];
+
+      node.querySelector(".btnCopy").addEventListener("click", () => {
+        // trava VIP simples
+        if (p.vip && !isVipUnlocked()) {
+          openPlans();
+          toast("Esse modelo é VIP. Desbloqueie no Plano.");
+          return;
+        }
+        copyText(sensiString(p));
+      });
+
+      node.querySelector(".btnDetails").addEventListener("click", () => openModal(p));
+
+      node.querySelector(".btnFav").addEventListener("click", () => {
+        if (state.favorites.has(p.name)) state.favorites.delete(p.name);
+        else state.favorites.add(p.name);
+        localStorage.setItem("ps_favs", JSON.stringify([...state.favorites]));
+        render();
+      });
     });
-  });
 
-  // --------------------------
-  // PWA (instalar)
-  // --------------------------
+    renderAd();
+  };
+
+  // --- Modal details ---
+  const openModal = (p) => {
+    state.selected = p;
+    $("#mTitle").textContent = p.name;
+    $("#mSub").textContent = `Config Free Fire • ${p.brand} • PAULO SENSI`;
+    $("#mGeral").textContent = p.geral;
+    $("#mRed").textContent = p.red;
+    $("#mDpi").textContent = p.dpi;
+
+    const isFav = state.favorites.has(p.name);
+    $("#mFav").textContent = isFav ? "★ Favorito" : "☆ Favorito";
+
+    const note = p.vip ? (isVipUnlocked() ? "VIP liberado ✅" : "VIP bloqueado • desbloqueie no plano") : "Dica: teste e ajuste ±2.";
+    $("#mNote").textContent = note;
+
+    $("#modal").classList.remove("hidden");
+  };
+
+  const closeModal = () => $("#modal").classList.add("hidden");
+
+  // --- Plans ---
+  const openPlans = () => $("#plansModal").classList.remove("hidden");
+  const closePlans = () => $("#plansModal").classList.add("hidden");
+
+  // --- Ad box ---
+  const renderAd = () => {
+    const ad = getAd();
+    const box = $("#adBox");
+
+    if (!ad.visible) { box.style.display = "none"; return; }
+    box.style.display = "block";
+
+    $("#adTitle").textContent = ad.title || "Espaço de banner";
+    $("#adSub").textContent = ad.sub || "Aqui você coloca AdSense / outra rede depois.";
+  };
+
+  // --- Generate suggestion (heurística) ---
+  const generateSuggestion = (query) => {
+    const q = (query || state.q || "").trim();
+    if (!q) return null;
+
+    // tenta separar marca / modelo
+    const brands = ["Samsung","Apple","Xiaomi","Motorola","Realme","Infinix","OPPO","Vivo","Asus","LG","Huawei"];
+    let brand = "Outra";
+    for (const b of brands) {
+      if (norm(q).includes(norm(b))) { brand = b; break; }
+    }
+
+    // heurística de valores (não é “IA real”, mas fica bem)
+    const base = Math.min(100, Math.max(88, 92 + (q.length % 9)));
+    const geral = Math.min(100, base + 4);
+    const red = Math.min(100, base + 1);
+    const dpi = 380 + ((q.length * 7) % 240);
+
+    return { name: q, brand, geral, red, dpi, popular:false, vip:false, generated:true };
+  };
+
+  // --- Owner panel (trava simples) ---
+  const OWNER_KEY = "ps_owner_ok";
+  const ownerOk = () => localStorage.getItem(OWNER_KEY) === "1";
+
+  const setOwner = (v) => {
+    state.owner = v;
+    if (v) localStorage.setItem(OWNER_KEY, "1");
+    else localStorage.removeItem(OWNER_KEY);
+    $("#ownerArea").classList.toggle("hidden", !v);
+  };
+
+  // senha simples (troque se quiser)
+  const OWNER_PASS = "PAULO#SENSI@2026";
+
+  // --- Install (PWA) ---
   let deferredPrompt = null;
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    $("#btnInstall").style.display = "inline-flex";
+    $("#btnInstall").disabled = false;
   });
 
-  $("#btnInstall").addEventListener("click", async () => {
-    try{
-      if(!deferredPrompt){
-        toast("No Android: Menu ⋮ > Adicionar à tela inicial");
+  // --- Bind UI ---
+  const bind = () => {
+    $("#q").addEventListener("input", (e) => { state.q = e.target.value; render(); });
+    $("#btnClear").addEventListener("click", () => { state.q=""; $("#q").value=""; render(); });
+
+    $("#brandSelect").addEventListener("change", (e) => { state.brand = e.target.value; render(); });
+
+    $("#btnSort").addEventListener("click", () => {
+      state.sortAZ = !state.sortAZ;
+      $("#btnSort").textContent = state.sortAZ ? "Ordenar: A→Z" : "Ordenar: Z→A";
+      render();
+    });
+
+    $("#btnOnlyPopular").addEventListener("click", () => {
+      state.onlyPopular = !state.onlyPopular;
+      $("#btnOnlyPopular").textContent = state.onlyPopular ? "Só populares: ON" : "Só populares: OFF";
+      render();
+    });
+
+    $("#btnRandom").addEventListener("click", () => {
+      const list = filtered(getPhones());
+      if (!list.length) { toast("Nada pra sortear"); return; }
+      const p = list[Math.floor(Math.random() * list.length)];
+      openModal(p);
+    });
+
+    $("#btnGenerate").addEventListener("click", () => {
+      const sug = generateSuggestion();
+      if (!sug) return toast("Digite o modelo primeiro");
+      openModal(sug);
+      toast("Sugestão criada ✅");
+    });
+
+    $("#btnShare").addEventListener("click", async () => {
+      const url = location.href;
+      try {
+        if (navigator.share) await navigator.share({ title:"PAULO SENSI", text:"Testa minha sensi:", url });
+        else await copyText(url);
+      } catch {}
+    });
+
+    // modal close
+    $("#mClose").addEventListener("click", closeModal);
+    $("#modal").addEventListener("click", (e) => { if (e.target?.dataset?.close) closeModal(); });
+
+    $("#mCopy").addEventListener("click", () => {
+      const p = state.selected;
+      if (!p) return;
+      if (p.vip && !isVipUnlocked()) { openPlans(); toast("VIP bloqueado"); return; }
+      copyText(sensiString(p));
+    });
+
+    $("#mFav").addEventListener("click", () => {
+      const p = state.selected;
+      if (!p) return;
+      if (state.favorites.has(p.name)) state.favorites.delete(p.name);
+      else state.favorites.add(p.name);
+      localStorage.setItem("ps_favs", JSON.stringify([...state.favorites]));
+      $("#mFav").textContent = state.favorites.has(p.name) ? "★ Favorito" : "☆ Favorito";
+      render();
+    });
+
+    $("#mOpenPlans").addEventListener("click", () => openPlans());
+
+    // plans
+    $("#btnPlans").addEventListener("click", openPlans);
+    $("#pClose").addEventListener("click", closePlans);
+    $("#plansModal").addEventListener("click", (e) => { if (e.target?.dataset?.close) closePlans(); });
+
+    $("#planFree").addEventListener("click", () => {
+      state.plan = "free"; localStorage.setItem("ps_plan","free");
+      toast("Plano Grátis ativado ✅");
+      closePlans(); render();
+    });
+
+    // sem servidor => botão “quero” abre mensagem (você troca por link do seu pagamento)
+    const askPay = (plan) => {
+      const msg = `Quero o plano ${plan} do PAULO SENSI. Meu nome: ____`;
+      copyText(msg);
+      toast("Mensagem copiada. Cole no Whats/DM ✅");
+    };
+
+    $("#planStd").addEventListener("click", () => askPay("Padrão (R$9,99)"));
+    $("#planPro").addEventListener("click", () => askPay("Premium (R$19,50)"));
+
+    // ad
+    $("#btnAdClose").addEventListener("click", () => {
+      const ad = getAd(); ad.visible = false; saveAd(ad);
+      renderAd(); toast("Anúncio ocultado");
+    });
+    $("#btnSimClick").addEventListener("click", () => {
+      const ad = getAd();
+      if (ad.link) window.open(ad.link, "_blank");
+      else toast("Coloque um link no Painel do dono");
+    });
+
+    // owner
+    $("#btnOpenOwner").addEventListener("click", () => {
+      $("#ownerModal").classList.remove("hidden");
+      setOwner(ownerOk());
+    });
+    $("#oClose").addEventListener("click", () => $("#ownerModal").classList.add("hidden"));
+    $("#ownerModal").addEventListener("click", (e) => { if (e.target?.dataset?.close) $("#ownerModal").classList.add("hidden"); });
+
+    $("#btnOwnerLogin").addEventListener("click", () => {
+      const pass = $("#ownerPass").value || "";
+      if (pass === OWNER_PASS) {
+        setOwner(true);
+        toast("Painel liberado ✅");
+      } else {
+        toast("Senha errada");
+      }
+    });
+
+    $("#btnOwnerLogout").addEventListener("click", () => {
+      setOwner(false);
+      toast("Saiu do painel");
+    });
+
+    $("#btnFactoryReset").addEventListener("click", () => {
+      if (!confirm("Resetar dados locais do app?")) return;
+      localStorage.removeItem("ps_phones");
+      localStorage.removeItem("ps_ad");
+      localStorage.removeItem("ps_favs");
+      localStorage.removeItem("ps_plan");
+      localStorage.removeItem("ps_vip");
+      toast("Resetado ✅");
+      render();
+    });
+
+    $("#btnAddOne").addEventListener("click", () => {
+      const name = $("#addName").value.trim();
+      const g = parseInt($("#addG").value,10);
+      const r = parseInt($("#addR").value,10);
+      const d = parseInt($("#addD").value,10);
+
+      if (!name || Number.isNaN(g) || Number.isNaN(r) || Number.isNaN(d)) {
+        $("#addMsg").textContent = "Preencha tudo certinho.";
         return;
       }
+
+      const phones = getPhones();
+      const brand = (name.split(" ")[0] || "Outra").replace(/[^\wÀ-ÿ]/g,"");
+      phones.unshift({ name, brand, geral:g, red:r, dpi:d, popular:false });
+
+      savePhones(phones);
+      $("#addMsg").textContent = "Adicionado ✅";
+      $("#addName").value = $("#addG").value = $("#addR").value = $("#addD").value = "";
+      render();
+    });
+
+    $("#btnBulkImport").addEventListener("click", () => {
+      const txt = $("#bulkJson").value.trim();
+      if (!txt) return $("#bulkMsg").textContent = "Cole um JSON primeiro.";
+      try {
+        const arr = JSON.parse(txt);
+        if (!Array.isArray(arr)) throw new Error("não é array");
+
+        const clean = arr
+          .filter(x => x && x.name)
+          .map(x => ({
+            name: String(x.name),
+            brand: String(x.brand || "Outra"),
+            geral: Number(x.geral ?? 95),
+            red: Number(x.red ?? 90),
+            dpi: Number(x.dpi ?? 420),
+            popular: !!x.popular,
+            vip: !!x.vip
+          }));
+
+        const phones = getPhones();
+        const merged = [...clean, ...phones];
+
+        savePhones(merged);
+        $("#bulkMsg").textContent = `Importado: ${clean.length} ✅`;
+        render();
+      } catch (e) {
+        $("#bulkMsg").textContent = "JSON inválido.";
+      }
+    });
+
+    $("#btnBulkExport").addEventListener("click", () => {
+      const phones = getPhones();
+      copyText(JSON.stringify(phones, null, 2));
+      $("#bulkMsg").textContent = "Base copiada ✅";
+    });
+
+    $("#btnSaveAd").addEventListener("click", () => {
+      const ad = getAd();
+      ad.visible = true;
+      ad.title = $("#adTitleIn").value.trim() || "Espaço de banner";
+      ad.sub = $("#adSubIn").value.trim() || "Aqui você coloca AdSense / outra rede depois.";
+      ad.link = $("#adLinkIn").value.trim() || "";
+      saveAd(ad);
+      $("#adMsg").textContent = "Anúncio salvo ✅";
+      renderAd();
+    });
+
+    $("#btnHideAd").addEventListener("click", () => {
+      const ad = getAd();
+      ad.visible = false;
+      saveAd(ad);
+      $("#adMsg").textContent = "Ocultado ✅";
+      renderAd();
+    });
+
+    $("#btnGenVip").addEventListener("click", () => {
+      const code = "PS-" + Math.random().toString(16).slice(2,10).toUpperCase() + "-" + Date.now().toString().slice(-4);
+      copyText(code);
+      $("#vipMsg").textContent = "Código gerado e copiado ✅";
+    });
+
+    $("#btnApplyVip").addEventListener("click", () => {
+      const code = $("#vipCodeIn").value.trim();
+      if (code.length < 8) return $("#vipMsg").textContent = "Código inválido.";
+      state.vip = code;
+      localStorage.setItem("ps_vip", code);
+      $("#vipMsg").textContent = "VIP ativado (local) ✅";
+      toast("VIP ativado ✅");
+      render();
+    });
+
+    // install
+    $("#btnInstall").addEventListener("click", async () => {
+      if (!deferredPrompt) return;
       deferredPrompt.prompt();
       await deferredPrompt.userChoice;
       deferredPrompt = null;
-    }catch{}
-  });
+      $("#btnInstall").disabled = true;
+    });
+  };
 
-  // --------------------------
-  // Boot
-  // --------------------------
-  function boot(){
-    $("#year").textContent = String(new Date().getFullYear());
-    $("#btnInstall").style.display = "none";
+  // close modals by clicking backdrop
+  const bindBackdrop = () => {
+    $$(".modal-backdrop").forEach(el => el.addEventListener("click", () => {
+      el.closest(".modal").classList.add("hidden");
+    }));
+  };
 
-    loadDevices();
-    fillBrandFilter();
-    refreshPlansUI();
+  // boot
+  const boot = () => {
+    bind();
+    bindBackdrop();
     render();
 
-    // se plano expirar -> volta planos
-    setInterval(() => refreshPlansUI(), 4000);
-  }
+    // prefill ad inputs
+    const ad = getAd();
+    $("#adTitleIn").value = ad.title || "";
+    $("#adSubIn").value = ad.sub || "";
+    $("#adLinkIn").value = ad.link || "";
+
+    // set plan label
+    $("#btnSort").textContent = state.sortAZ ? "Ordenar: A→Z" : "Ordenar: Z→A";
+    $("#btnOnlyPopular").textContent = state.onlyPopular ? "Só populares: ON" : "Só populares: OFF";
+  };
 
   boot();
-
 })();
