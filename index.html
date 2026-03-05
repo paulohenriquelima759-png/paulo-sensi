@@ -1,221 +1,299 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="description" content="PAULO SENSI • Sensibilidade Free Fire por celular • Copiar em 1 toque" />
+  <title>PAULO SENSI</title>
 
-<title>PAULO SENSI</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="logo.png" />
+  <link rel="apple-touch-icon" href="logo.png" />
 
-<link rel="stylesheet" href="style.css">
-
-<style>
-
-body{
-background:#0b0f1a;
-color:white;
-font-family:Arial, Helvetica, sans-serif;
-margin:0;
-}
-
-header{
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:15px;
-background:#050914;
-}
-
-.logo{
-display:flex;
-align-items:center;
-gap:10px;
-}
-
-.logo-box{
-width:40px;
-height:40px;
-background:red;
-border-radius:10px;
-display:flex;
-align-items:center;
-justify-content:center;
-font-weight:bold;
-}
-
-h1{
-font-size:18px;
-margin:0;
-}
-
-.sub{
-font-size:12px;
-color:#aaa;
-}
-
-main{
-padding:20px;
-}
-
-.title{
-font-size:32px;
-font-weight:bold;
-}
-
-.red{
-color:#ff3b3b;
-}
-
-.search{
-margin-top:20px;
-}
-
-.search input{
-width:100%;
-padding:14px;
-border-radius:10px;
-border:none;
-background:#111827;
-color:white;
-font-size:14px;
-}
-
-.cards{
-margin-top:30px;
-display:grid;
-gap:20px;
-}
-
-.card{
-background:#111827;
-border-radius:14px;
-padding:20px;
-}
-
-.phone{
-font-size:20px;
-font-weight:bold;
-margin-bottom:10px;
-}
-
-.info{
-color:#cbd5e1;
-margin:4px 0;
-}
-
-.btn{
-margin-top:15px;
-background:#ff3b3b;
-border:none;
-padding:12px;
-border-radius:10px;
-color:white;
-font-weight:bold;
-width:100%;
-cursor:pointer;
-}
-
-.btn:hover{
-background:#ff0000;
-}
-
-</style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
+  <div class="bg"></div>
 
-<header>
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-logo" src="logo.png" alt="PS" onerror="this.style.display='none'">
+      <div class="brand-txt">
+        <div class="brand-name">PAULO SENSI</div>
+        <div class="brand-sub">Sensibilidade Free Fire por celular • Copiar em 1 toque</div>
+      </div>
+    </div>
 
-<div class="logo">
-<div class="logo-box">PS</div>
+    <div class="topbar-actions">
+      <button class="chip" id="statusChip">
+        <span class="dot"></span>
+        <span id="statusText">Online • Atualiza pelo GitHub</span>
+      </button>
+      <button class="btn btn-ghost" id="btnOpenOwner">Painel</button>
+    </div>
+  </header>
 
-<div>
-<h1>PAULO SENSI</h1>
-<div class="sub">Sensibilidade Free Fire por celular • Copiar em 1 toque</div>
-</div>
-</div>
+  <main class="wrap">
+    <section class="hero">
+      <h1>Encontre sua sensi <span class="accent">perfeita</span> rápido.</h1>
+      <p class="lead">
+        Procure por marca/modelo. Se não existir, o sistema cria uma sugestão automática.
+      </p>
 
-<button style="background:#111827;color:white;border:none;padding:8px 12px;border-radius:8px;">
-Painel
-</button>
+      <div class="controls">
+        <div class="input">
+          <span class="icon">🔎</span>
+          <input id="q" type="search" placeholder="Buscar celular... ex: Samsung A16, Redmi Note 11, Moto G84" autocomplete="off" />
+          <button class="mini" id="btnClear" title="Limpar">✕</button>
+        </div>
 
-</header>
+        <div class="row">
+          <select id="brandSelect" class="select">
+            <option value="__ALL__">Todas marcas</option>
+          </select>
 
+          <button class="btn btn-primary" id="btnRandom">Aleatório</button>
+        </div>
 
-<main>
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-big" id="statCount">0</div>
+            <div class="stat-sub">modelos na base</div>
+          </div>
 
-<div class="title">
-Encontre sua sensi <span class="red">perfeita</span> rápido.
-</div>
+          <div class="stat">
+            <div class="stat-big" id="statPlan">Grátis</div>
+            <div class="stat-sub">plano atual</div>
+          </div>
 
-<p style="color:#9ca3af;">
-Procure por marca/modelo. Se não existir o sistema cria uma sugestão automática.
-</p>
+          <div class="stat">
+            <div class="stat-big" id="statVer">v1.0</div>
+            <div class="stat-sub" id="statDate">atualização</div>
+          </div>
+        </div>
+      </div>
+    </section>
 
+    <!-- Anúncio (apenas espaço, não é AdSense automático) -->
+    <section class="adbox" id="adBox">
+      <div class="adhead">
+        <div>
+          <div class="adtag">ANÚNCIO</div>
+          <div class="adtitle" id="adTitle">Espaço de banner</div>
+          <div class="adsub" id="adSub">Aqui você coloca AdSense / outra rede depois.</div>
+        </div>
+        <button class="btn btn-ghost" id="btnAdClose" title="Fechar">✕</button>
+      </div>
+      <button class="btn btn-soft" id="btnSimClick">Simular clique</button>
+    </section>
 
-<div class="search">
-<input type="text" placeholder="Buscar celular... ex: Samsung A16, Redmi Note 11">
-</div>
+    <section class="tips">
+      <div class="tips-title">Dicas rápidas</div>
+      <ul>
+        <li>Use <b>DPI + Geral + Red Dot</b>.</li>
+        <li>Teste 3 partidas e ajuste <b>±2</b>.</li>
+        <li>Se seu modelo não aparecer: digite e use <b>“Gerar”</b>.</li>
+      </ul>
 
+      <div class="toolbar">
+        <button class="btn btn-ghost" id="btnSort">Ordenar: A→Z</button>
+        <button class="btn btn-ghost" id="btnOnlyPopular">Só populares: OFF</button>
+        <button class="btn btn-primary" id="btnGenerate">Gerar para busca</button>
+        <button class="btn btn-ghost" id="btnShare">Compartilhar</button>
+      </div>
+    </section>
 
-<div class="cards">
+    <section class="grid" id="cards"></section>
 
-<div class="card">
+    <footer class="foot">
+      <div>© <span id="year"></span> PAULO SENSI • Feito para celular</div>
+      <div class="foot-actions">
+        <button class="btn btn-ghost" id="btnPlans">Planos</button>
+        <button class="btn btn-ghost" id="btnInstall" disabled>Instalar</button>
+      </div>
+    </footer>
+  </main>
 
-<div class="phone">Samsung A16</div>
+  <!-- Modal Detalhes -->
+  <div class="modal hidden" id="modal">
+    <div class="modal-backdrop" data-close="1"></div>
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title" id="mTitle">Modelo</div>
+          <div class="modal-sub" id="mSub">Config Free Fire • PAULO SENSI</div>
+        </div>
+        <button class="btn btn-ghost" id="mClose">✕</button>
+      </div>
 
-<div class="info">Geral: 95</div>
-<div class="info">Red Dot: 90</div>
-<div class="info">DPI: 420</div>
+      <div class="modal-body">
+        <div class="kv">
+          <div class="kv-item"><div class="k">Geral</div><div class="v" id="mGeral">0</div></div>
+          <div class="kv-item"><div class="k">Red Dot</div><div class="v" id="mRed">0</div></div>
+          <div class="kv-item"><div class="k">DPI</div><div class="v" id="mDpi">0</div></div>
+        </div>
 
-<button class="btn">Copiar Sensibilidade</button>
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="mCopy">Copiar Sensibilidade</button>
+          <button class="btn btn-soft" id="mFav">☆ Favorito</button>
+          <button class="btn btn-ghost" id="mOpenPlans">Ver VIP</button>
+        </div>
 
-</div>
+        <div class="muted small" id="mNote"></div>
+      </div>
+    </div>
+  </div>
 
+  <!-- Modal Planos -->
+  <div class="modal hidden" id="plansModal">
+    <div class="modal-backdrop" data-close="1"></div>
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">Planos</div>
+          <div class="modal-sub">Desbloqueie extras (sem servidor = simples)</div>
+        </div>
+        <button class="btn btn-ghost" id="pClose">✕</button>
+      </div>
 
-<div class="card">
+      <div class="modal-body">
+        <div class="plans">
+          <div class="plan">
+            <div class="plan-name">Grátis</div>
+            <div class="plan-price">R$ 0</div>
+            <ul>
+              <li>Buscar / copiar</li>
+              <li>Gerador automático</li>
+              <li>Favoritos</li>
+            </ul>
+            <button class="btn btn-soft" id="planFree">Ativar</button>
+          </div>
 
-<div class="phone">Samsung A12</div>
+          <div class="plan hot">
+            <div class="plan-name">Padrão</div>
+            <div class="plan-price">R$ 9,99</div>
+            <ul>
+              <li>Mais sugestões VIP</li>
+              <li>Mais modelos populares</li>
+              <li>Sem limite de favoritos</li>
+            </ul>
+            <button class="btn btn-primary" id="planStd">Quero</button>
+          </div>
 
-<div class="info">Geral: 92</div>
-<div class="info">Red Dot: 88</div>
-<div class="info">DPI: 400</div>
+          <div class="plan">
+            <div class="plan-name">Premium</div>
+            <div class="plan-price">R$ 19,50</div>
+            <ul>
+              <li>VIP completo</li>
+              <li>Top recomendações</li>
+              <li>Modo creator</li>
+            </ul>
+            <button class="btn btn-primary" id="planPro">Quero</button>
+          </div>
+        </div>
 
-<button class="btn">Copiar Sensibilidade</button>
+        <div class="muted small">
+          Dica: sem servidor, o “premium” é por código local (não é 100% seguro).
+          Se um dia você quiser deixar impossível de burlar, aí sim precisa de servidor.
+        </div>
+      </div>
+    </div>
+  </div>
 
-</div>
+  <!-- Modal Painel do Dono -->
+  <div class="modal hidden" id="ownerModal">
+    <div class="modal-backdrop" data-close="1"></div>
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">Painel do dono</div>
+          <div class="modal-sub">Sem servidor • trava simples</div>
+        </div>
+        <button class="btn btn-ghost" id="oClose">✕</button>
+      </div>
 
+      <div class="modal-body">
+        <div class="row">
+          <input id="ownerPass" class="text" type="password" placeholder="Senha do dono" />
+          <button class="btn btn-primary" id="btnOwnerLogin">Entrar</button>
+        </div>
 
-<div class="card">
+        <div id="ownerArea" class="owner hidden">
+          <div class="owner-grid">
+            <div class="card soft">
+              <div class="card-title">Adicionar 1 modelo</div>
+              <input id="addName" class="text" placeholder="Ex: Samsung A55" />
+              <div class="row">
+                <input id="addG" class="text" inputmode="numeric" placeholder="Geral" />
+                <input id="addR" class="text" inputmode="numeric" placeholder="Red Dot" />
+                <input id="addD" class="text" inputmode="numeric" placeholder="DPI" />
+              </div>
+              <button class="btn btn-primary" id="btnAddOne">Adicionar</button>
+              <div class="muted small" id="addMsg"></div>
+            </div>
 
-<div class="phone">Redmi Note 11</div>
+            <div class="card soft">
+              <div class="card-title">Importar em massa (JSON)</div>
+              <textarea id="bulkJson" class="area" placeholder='Cole aqui um JSON tipo:
+[
+ {"name":"Moto G84","brand":"Motorola","geral":96,"red":92,"dpi":430,"popular":true},
+ {"name":"iPhone 13","brand":"Apple","geral":100,"red":97,"dpi":600,"popular":true}
+]'></textarea>
+              <div class="row">
+                <button class="btn btn-primary" id="btnBulkImport">Importar</button>
+                <button class="btn btn-ghost" id="btnBulkExport">Exportar base</button>
+              </div>
+              <div class="muted small" id="bulkMsg"></div>
+            </div>
 
-<div class="info">Geral: 95</div>
-<div class="info">Red Dot: 90</div>
-<div class="info">DPI: 420</div>
+            <div class="card soft">
+              <div class="card-title">Anúncio (só o texto/btn)</div>
+              <input id="adTitleIn" class="text" placeholder="Título do banner" />
+              <input id="adSubIn" class="text" placeholder="Descrição" />
+              <input id="adLinkIn" class="text" placeholder="Link do anúncio (https://...)" />
+              <div class="row">
+                <button class="btn btn-primary" id="btnSaveAd">Salvar</button>
+                <button class="btn btn-ghost" id="btnHideAd">Ocultar</button>
+              </div>
+              <div class="muted small" id="adMsg"></div>
+            </div>
 
-<button class="btn">Copiar Sensibilidade</button>
+            <div class="card soft">
+              <div class="card-title">VIP (código local)</div>
+              <div class="muted small">Você gera um código e passa pra quem pagou.</div>
+              <div class="row">
+                <button class="btn btn-primary" id="btnGenVip">Gerar código</button>
+                <input id="vipCodeIn" class="text" placeholder="Colar código aqui" />
+                <button class="btn btn-ghost" id="btnApplyVip">Ativar</button>
+              </div>
+              <div class="muted small" id="vipMsg"></div>
+            </div>
+          </div>
 
-</div>
+          <div class="row">
+            <button class="btn btn-ghost" id="btnOwnerLogout">Sair</button>
+            <button class="btn btn-ghost" id="btnFactoryReset">Resetar (local)</button>
+          </div>
+        </div>
 
+        <div class="muted small">
+          Aviso: sem servidor, o painel é “segurança simples”. Não use senhas pessoais.
+        </div>
+      </div>
+    </div>
+  </div>
 
-<div class="card">
+  <div class="toast hidden" id="toast"></div>
 
-<div class="phone">Poco X3</div>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
 
-<div class="info">Geral: 97</div>
-<div class="info">Red Dot: 92</div>
-<div class="info">DPI: 430</div>
-
-<button class="btn">Copiar Sensibilidade</button>
-
-</div>
-
-</div>
-
-</main>
-
-<script src="data.js"></script>
-<script src="app.js"></script>
-
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+    }
+  </script>
 </body>
-</html>
+            </html>
